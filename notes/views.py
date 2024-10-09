@@ -17,7 +17,17 @@ from django.contrib.auth.models import User
 
 from django.contrib.auth import authenticate,login,logout
 
+from notes.decorators import signin_required
 
+from django.views.decorators.cache import never_cache
+
+from django.utils.decorators import method_decorator
+
+from django.db.models import Count
+
+decs=[signin_required,never_cache]
+
+@method_decorator(decs,name="dispatch")
 class TaskCreateView(View):
 
     def get(self,request,*args,**kwargs):
@@ -48,11 +58,13 @@ class TaskCreateView(View):
             return render(request,"task_create.html",{"form":form_instance})
         
 
-# TaskList
+# TaskList decorators
 
+@method_decorator(decs,name="dispatch")
 class TaskListView(View):
 
     def get(self,request,*args,**kwargs):
+         
        
        search_text=request.GET.get("search_text")                
 
@@ -60,16 +72,20 @@ class TaskListView(View):
 
        if selected_category =="all":
            
-           qs=Task.objects.all()
+           qs=Task.objects.filter(user=request.user)
        else:
-           qs=Task.objects.filter(category=selected_category)
+           qs=Task.objects.filter(category=selected_category,user=request.user)
         
        if search_text!=None:
            
-           qs=Task.objects.filter(Q(title__icontains=search_text)|Q(description__icontains=search_text))
+           qs=Task.objects.filter(user=request.user)
+
+           qs=qs.filter(Q(title__icontains=search_text)|Q(description__icontains=search_text))
+           
         
        return render(request,"task_list.html",{"tasks":qs,"selected":selected_category})
            
+@method_decorator(decs,name="dispatch")
 class TaskDetailView(View):
 
 
@@ -85,7 +101,7 @@ class TaskDetailView(View):
         return render(request,"task_detail.html",{"task":qs})
 
 
-
+@method_decorator(decs,name="dispatch")
 class TaskUpdateView(View):
 
     def get(self,request,*args,**kwargs):
@@ -132,6 +148,7 @@ class TaskUpdateView(View):
 
             return render(request,"task_edit.html",{"form":form_instance})
 
+@method_decorator(decs,name="dispatch")
 class TaskDeleteView(View):
 
     def get(self,request,*args,**kwargs):
@@ -143,20 +160,19 @@ class TaskDeleteView(View):
 
 # TaskSummaryView
 
-
+@method_decorator(decs,name="dispatch")
 class TaskSummaryView(View):
 
     def get(self,request,*args,**kwargs):
 
-        qs=Task.objects.all()
+        qs=Task.objects.filter(user=request.user)
 
         total_task_count=qs.count()
 
-        category_summary=Task.objects.all().values("category").annotate(cat_count=Count("category"))
+        category_summary=qs.values("category").annotate(cat_count=Count("category"))
         
-        status_summary=Task.objects.all().values("status").annotate(stat_count=Count("status"))
+        status_summary=qs.values("status").annotate(stat_count=Count("status"))
         print(category_summary)
-
 
 
         context={
@@ -170,6 +186,7 @@ class TaskSummaryView(View):
         }
 
         return render(request,"task_summary.html",context)
+
 
 class SignUpView(View):
 
@@ -241,7 +258,7 @@ class SignInView(View):
 
         
 
-
+@method_decorator(decs,name="dispatch")
 class SignOutView(View):
 
     def get(self,request,*args,**kwargs):

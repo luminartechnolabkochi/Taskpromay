@@ -44,8 +44,8 @@ class RegistrationForm(forms.ModelForm):
 
 class SignInForm(forms.Form):
 
-    username=forms.CharField()
+    username=forms.CharField(widget=forms.TextInput(attrs={"class":"form-control mb-2 mt-3"}))
 
-    password=forms.CharField(widget=forms.PasswordInput())
+    password=forms.CharField(widget=forms.PasswordInput(attrs={"class":"form-control mb-3 mt-3"}))
 
 
